@@ -10,12 +10,6 @@ variable "bucket_name" {
   default     = "my-tf-example-bucket-fisabel-20260204"
 }
 
-variable "state_bucket_name" {
-  description = "Name of the S3 bucket for Terraform state"
-  type        = string
-  default     = "my-terraform-state-bobby"
-}
-
 variable "state_lock_table" {
   description = "Name of the DynamoDB table for state locking"
   type        = string
