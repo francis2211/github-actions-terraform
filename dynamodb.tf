@@ -8,6 +8,14 @@ resource "aws_dynamodb_table" "terraform_lock" {
     type = "S"
   }
 
+  server_side_encryption {
+    enabled = true
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
   tags = {
     Name        = var.state_lock_table
     Environment = var.environment
