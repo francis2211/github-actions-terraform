@@ -7,6 +7,17 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Terraform action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
 
 jobs:
   terraform:
@@ -73,7 +84,11 @@ jobs:
     - name: 'Terraform Plan'
       id: plan
       run: |
-        terraform plan -no-color -out=tfplan
+        if [[ "${{ github.event.inputs.action }}" == "destroy" ]]; then
+          terraform plan -destroy -no-color -out=tfplan
+        else
+          terraform plan -no-color -out=tfplan
+        fi
       continue-on-error: true
 
     - name: 'Comment PR with Plan'
@@ -81,10 +96,11 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
+          const planType = '${{ github.event.inputs.action }}' === 'destroy' ? '🔴 DESTROY' : '📖';
           const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
           #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
           #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-          #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+          #### Terraform Plan ${planType}\`${{ steps.plan.outcome }}\`
 
           <details><summary>Show Plan</summary>
 
@@ -104,5 +120,11 @@ jobs:
           })
 
     - name: 'Terraform Apply'
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: |
+        (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+      run: terraform apply -auto-approve tfplan
+
+    - name: 'Terraform Destroy'
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
       run: terraform apply -auto-approve tfplan
