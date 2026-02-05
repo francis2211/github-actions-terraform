@@ -31,12 +31,12 @@ terraform apply
 ## What Gets Created
 
 - **S3 Bucket:** `my-terraform-state-bobby`
-  - Region: us-west-2
+  - Region: us-west-1
   - Versioning enabled
   - Encryption enabled (AES256)
   - Public access blocked
 
-- **DynamoDB Table:** `terraform-state-lock`
+- **DynamoDB Table:** `terraform-state-lock-backend`
   - Hash key: LockID
   - Pay-per-request billing
   - Server-side encryption enabled

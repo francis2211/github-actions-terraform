@@ -2,7 +2,7 @@
 # This should be run once before enabling the backend in the main configuration
 
 provider "aws" {
-  region = "us-east-1"
+  region = "us-west-1"
 }
 
 # S3 bucket for Terraform state
