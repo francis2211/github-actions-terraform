@@ -5,6 +5,11 @@
 *.tfstate
 *.tfstate.*
 
+# Bootstrap state (keep this safe!)
+bootstrap/*.tfstate
+bootstrap/*.tfstate.*
+bootstrap/.terraform.lock.hcl
+
 # Crash log files
 crash.log
 crash.*.log
