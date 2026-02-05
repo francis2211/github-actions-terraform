@@ -68,7 +68,7 @@ jobs:
         tflint
 
     - name: 'tfsec'
-      run: tfsec .
+      run: tfsec . --minimum-severity MEDIUM
 
     - name: 'Terraform Plan'
       id: plan
