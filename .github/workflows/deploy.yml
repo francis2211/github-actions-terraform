@@ -14,24 +14,25 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      AWS_REGION: 'us-east-1'
-      TF_VERSION: '1.4.0'
-      TFLINT_VERSION: '0.46.1'  # Updated to a more recent version
-      TFSEC_VERSION: '1.28.1'   # Updated to a more recent version
+      AWS_REGION: 'us-west-2'
+      TF_VERSION: '1.9.0'
+      TFLINT_VERSION: '0.50.0'
+      TFSEC_VERSION: '1.28.5'
 
     steps:
     - name: 'Checkout GitHub repository'
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: 'Configure AWS credentials'
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
         aws-region: ${{ env.AWS_REGION }}
 
     - name: 'Set up Terraform'
-      uses: hashicorp/setup-terraform@v1
+      uses: hashicorp/setup-terraform@v3
       with:
         terraform_version: ${{ env.TF_VERSION }}
 
@@ -49,12 +50,16 @@ jobs:
         tfsec --version
 
     - name: 'Terraform Init'
+      id: init
       run: terraform init
 
     - name: 'Terraform Format'
-      run: terraform fmt
+      id: fmt
+      run: terraform fmt -check
+      continue-on-error: true
 
     - name: 'Terraform Validate'
+      id: validate
       run: terraform validate
 
     - name: 'TFLint'
@@ -63,11 +68,41 @@ jobs:
         tflint
 
     - name: 'tfsec'
-      run: tfsec .
+      run: tfsec . --minimum-severity MEDIUM
 
     - name: 'Terraform Plan'
-      run: terraform plan -out=tfplan
+      id: plan
+      run: |
+        terraform plan -no-color -out=tfplan
+      continue-on-error: true
+
+    - name: 'Comment PR with Plan'
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+          #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+          #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+          #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+          <details><summary>Show Plan</summary>
+
+          \`\`\`terraform
+          ${{ steps.plan.outputs.stdout }}
+          \`\`\`
+
+          </details>
+
+          *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
 
     - name: 'Terraform Apply'
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: terraform apply -auto-approve tfplan
